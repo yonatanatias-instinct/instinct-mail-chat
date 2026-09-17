@@ -63,3 +63,20 @@ Replies may take a short time to arrive. Poll this endpoint using the same
 Errors use `{ "error": "code" }`. Common statuses are 400 (invalid request),
 401 (missing or invalid API key), 429 (rate limited), 502 (mail provider error),
 and 503 (server configuration missing).
+
+### OpenAI-compatible chat completions
+
+Configure an OpenAI-compatible provider with base URL `https://instinct-mail-chat.vercel.app/api/v1`, model `instinct-mail-chat`, and the same Bearer API key.
+
+`POST /api/v1/chat/completions` accepts `model`, `messages`, and optional `stream`. It relays the last user message and waits up to 240 seconds for Instinct's email reply. `stream: true` returns SSE after the reply arrives. To preserve a multi-turn mail session, send a stable `conversation_id` or `user` value (or `X-Conversation-Id` header) on every call. The response returns the resulting ID in `X-Session-Id` and `system_fingerprint`.
+
+`GET /api/v1/models` lists the supported model.
+
+```bash
+curl --max-time 270 https://instinct-mail-chat.vercel.app/api/v1/chat/completions \
+  -H 'Authorization: Bearer YOUR_API_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"instinct-mail-chat","conversation_id":"opencode-main","messages":[{"role":"user","content":"Reply with hello"}],"stream":false}'
+```
+
+A successful response is a standard `chat.completion` object. If no reply arrives within 240 seconds, the endpoint returns HTTP 504 with OpenAI-style error code `reply_timeout` and the session ID. The outbound email has already been sent in that case.
