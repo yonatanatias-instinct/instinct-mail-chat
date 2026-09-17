@@ -21,8 +21,8 @@ export async function middleware(req:NextRequest){
   if(path==='/api/inbound')return NextResponse.next();
   if(path.startsWith('/api/v1/')){
     if(!apiAuthenticated(req))return NextResponse.json({error:'unauthorized'},{status:401,headers:{'WWW-Authenticate':'Bearer'}});
-    const isWrite=path==='/api/v1/messages'&&req.method==='POST';
-    const gate=limit(`api:${isWrite?'write':'read'}:${ip(req)}`,isWrite?30:120,60*1000);
+    const isWrite=req.method==='POST'&&(path==='/api/v1/messages'||path==='/api/v1/chat/completions');
+    const gate=limit(`api:${isWrite?'write':'read'}:${ip(req)}`,isWrite?(path==='/api/v1/chat/completions'?10:30):120,60*1000);
     if(!gate.ok)return NextResponse.json({error:'rate_limited'},{status:429,headers:{'Retry-After':String(gate.retry)}});
     return NextResponse.next();
   }
